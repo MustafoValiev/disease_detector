@@ -23,8 +23,6 @@ pip-wheel-metadata/
 /data/
 *.pth
 *.pt
-*.png
-*.pdf
 
 # System files
 .DS_Store

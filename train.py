@@ -8,25 +8,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
 import numpy as np
-# from tqdm import tqdm  <-- Commented out to prevent progress bar clutter
 import sys
 import copy 
 
-# --- HYPERPARAMETERS & CONFIG ---
-# SILENCED CONFIGURATION CHECKS FOR REPORT
-# print("="*50)
-# print("SYSTEM CONFIGURATION CHECK")
-# print("="*50)
-# print(f"PyTorch Version: {torch.__version__}")
 
 if torch.cuda.is_available():
-    # print(f"GPU Name:        {torch.cuda.get_device_name(0)}")
     DEVICE = torch.device('cuda')
 else:
-    # print("!! WARNING: CUDA NOT DETECTED. !!")
     DEVICE = torch.device('cpu')
-# print(f"Active Device:   {DEVICE}")
-# print("="*50 + "\n")
 
 DATASET_PATH = './data' 
 IMG_HEIGHT = 256
@@ -37,7 +26,6 @@ LEARNING_RATE = 0.0001
 NUM_CLASSES = 8
 EARLY_STOPPING_PATIENCE = 10 
 
-# --- DATA LOADING AND AUGMENTATION ---
 def get_data_loaders(data_dir):
     train_transforms = transforms.Compose([
         transforms.Resize((IMG_HEIGHT, IMG_WIDTH)),
@@ -71,15 +59,8 @@ def get_data_loaders(data_dir):
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2, pin_memory=True)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)
 
-    # SILENCED DATASET INFO
-    # print(f"Total Images: {len(full_dataset)}")
-    # print(f"Training Set: {train_size} images")
-    # print(f"Test Set (for Validation/Evaluation): {test_size} images")
-    # print(f"Classes: {full_dataset.classes}")
-    
     return train_loader, test_loader, full_dataset.classes
 
-# --- MODEL ARCHITECTURE ---
 class SuperbCustomCNN(nn.Module):
     def __init__(self, num_classes=8):
         super(SuperbCustomCNN, self).__init__()
@@ -132,7 +113,6 @@ class SuperbCustomCNN(nn.Module):
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-# --- VALIDATION HELPER FUNCTION ---
 def validate_model(model, test_loader, criterion):
     model.eval()
     test_loss = 0.0
@@ -153,7 +133,6 @@ def validate_model(model, test_loader, criterion):
     model.train()
     return avg_test_loss, test_acc
 
-# --- TRAINING FUNCTION (CLEAN OUTPUT) ---
 def train_model(model, train_loader, test_loader, criterion, optimizer, scheduler, max_epochs, patience):
     model.train()
     
@@ -162,16 +141,12 @@ def train_model(model, train_loader, test_loader, criterion, optimizer, schedule
     best_model_weights = None
     epochs_no_improve = 0
     
-    # Removed initial start message to keep log clean
-    # print("\nStarting Training with Early Stopping...")
     
     for epoch in range(max_epochs):
         running_loss = 0.0
         correct = 0
         total = 0
         
-        # --- CLEAN LOOP (Removed tqdm progress bar) ---
-        # We iterate directly over train_loader to avoid the progress bar output
         for images, labels in train_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             outputs = model(images)
@@ -186,7 +161,6 @@ def train_model(model, train_loader, test_loader, criterion, optimizer, schedule
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
         
-        # Calculate metrics
         epoch_train_acc = 100 * correct / total
         epoch_train_loss = running_loss / len(train_loader)
         epoch_test_loss, epoch_test_acc = validate_model(model, test_loader, criterion)
@@ -198,10 +172,8 @@ def train_model(model, train_loader, test_loader, criterion, optimizer, schedule
         
         scheduler.step(epoch_test_loss)
         
-        # --- THE ONLY OUTPUT LINE ---
         print(f"Epoch [{epoch+1}/{max_epochs}] | Train Loss: {epoch_train_loss:.4f}, Train Acc: {epoch_train_acc:.2f}% | Test Loss: {epoch_test_loss:.4f}, Test Acc: {epoch_test_acc:.2f}%")
 
-        # Early Stopping
         if epoch_test_loss < best_test_loss:
             best_test_loss = epoch_test_loss
             epochs_no_improve = 0
@@ -214,9 +186,7 @@ def train_model(model, train_loader, test_loader, criterion, optimizer, schedule
 
     if best_model_weights is not None:
         model.load_state_dict(best_model_weights)
-        # print("Loaded best model weights.") # Silenced
 
-    # Plotting (Silent save)
     epochs_ran = len(history['train_accuracy'])
     plt.figure(figsize=(12, 5))
     
@@ -240,23 +210,19 @@ def train_model(model, train_loader, test_loader, criterion, optimizer, schedule
     
     plt.tight_layout()
     plt.savefig('training_curves_optimized.png')
-    # print("\nTraining curves saved as 'training_curves_optimized.png'") # Silenced
     
     return history
 
-# --- FINAL EVALUATION ---
 def evaluate_model(model, test_loader, classes):
     model.eval()
     y_true = []
     y_pred = []
     
-    # Optional: Clean indicator that evaluation is happening
     print("\n" + "="*30)
     print("FINAL MODEL EVALUATION")
     print("="*30)
     
     with torch.no_grad():
-        # We keep the loop clean (no tqdm) to match your style
         for images, labels in test_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             outputs = model(images)
@@ -264,16 +230,13 @@ def evaluate_model(model, test_loader, classes):
             y_true.extend(labels.cpu().numpy())
             y_pred.extend(predicted.cpu().numpy())
     
-    # Calculate F1 Score
     f1 = f1_score(y_true, y_pred, average='weighted')
     
-    # --- OUTPUTS FOR REPORT ---
     print(f"\n>>> FINAL WEIGHTED F1 SCORE: {f1:.4f} <<<")
     
     print("\nClassification Report:")
     print(classification_report(y_true, y_pred, target_names=classes))
     
-    # Generate Matrix
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(10, 8))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=classes, yticklabels=classes)
@@ -284,26 +247,14 @@ def evaluate_model(model, test_loader, classes):
     print("Confusion Matrix saved as 'confusion_matrix.png'")
     print("="*30 + "\n")
 
-# --- MAIN EXECUTION ---
 if __name__ == '__main__':
     train_loader, test_loader, classes = get_data_loaders(DATASET_PATH)
     model = SuperbCustomCNN(num_classes=NUM_CLASSES).to(DEVICE)
-    
-    # SILENCED ARCHITECTURE SUMMARY
-    # print("\n" + "="*30)
-    # print("MODEL ARCHITECTURE SUMMARY")
-    # print("="*30)
-    # print(model)
-    # num_params = count_parameters(model)
-    # print(f"\nTotal Trainable Parameters: {num_params:,}")
-    # print("="*30 + "\n")
-    
+
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
 
-    # Train
     train_model(model, train_loader, test_loader, criterion, optimizer, scheduler, MAX_EPOCHS, EARLY_STOPPING_PATIENCE)
     
-    # Evaluate
     evaluate_model(model, test_loader, classes)

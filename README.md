@@ -72,16 +72,3 @@ The script will:
 - `data/` is ignored by `.gitignore` to avoid committing large datasets.
 - Model weights are not saved by default in `train.py`; add a `torch.save(...)` call if you want to persist checkpoints.
 
-## GitHub
-
-This folder is configured to use the remote repository:
-
-`https://github.com/MustafoValiev/disease_detector.git`
-
-To push changes:
-
-```bash
-git add .
-git commit -m "Add project README and gitignore"
-git push origin main
-```
